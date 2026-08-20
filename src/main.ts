@@ -1,0 +1,55 @@
+import { Config, Effect, Layer } from "effect";
+import { EffectClient } from "./effect/client.ts";
+import { LlmDeterministic, LlmLive } from "./effect/Llm.ts";
+import type { Llm } from "./effect/Llm.ts";
+import { serveAgents } from "./effect/worker.ts";
+import { agentSpecs } from "./agents/index.ts";
+import { researchAgentFlow } from "./model/research-agent.ts";
+
+/**
+ * Deploy + run the demo against a Camunda 8 engine.
+ *
+ *   node --experimental-strip-types src/main.ts
+ *
+ * Env:
+ *   CAMUNDA_REST_ADDRESS  base URL of the C8 / nanobpmn gateway (default localhost:8080)
+ *   CAMUNDA_TOKEN         bearer token, if the gateway requires one
+ *   LLM_API_KEY           when set, the agents use the real `LlmLive`; otherwise
+ *                         the deterministic stand-in (so the demo runs offline)
+ *
+ * The whole thing is one scoped Effect: deploy → lease the agent workers →
+ * start an instance → serve until interrupted (each worker's lease is released
+ * on scope close).
+ */
+
+const baseUrl = process.env.CAMUNDA_REST_ADDRESS ?? "http://localhost:8080";
+const token = process.env.CAMUNDA_TOKEN;
+
+const llmLayer: Layer.Layer<Llm, Config.ConfigError> = process.env.LLM_API_KEY ? LlmLive : LlmDeterministic;
+
+const program = Effect.gen(function* () {
+  const flow = researchAgentFlow();
+  const client = EffectClient.make(token ? { baseUrl, token } : { baseUrl });
+
+  yield* Effect.log(`deploying 'research-agent' to ${baseUrl}`);
+  yield* client.deploy(flow);
+
+  yield* serveAgents(client.sdk, llmLayer, agentSpecs, (o) =>
+    Effect.runSync(Effect.log(`job ${o.jobType} ${o._tag}`)),
+  );
+  yield* Effect.log(`serving ${agentSpecs.length} agents (${process.env.LLM_API_KEY ? "LlmLive" : "LlmDeterministic"})`);
+
+  const started = yield* client.start(flow, {
+    question: process.env.QUESTION ?? "How does Effect's TestClock make agent orchestration deterministic?",
+    requesterId: "demo-requester",
+    reviewerId: "demo-reviewer",
+    synthesizeSla: "PT30S",
+    reviewNudgeSla: "PT2H",
+  });
+  yield* Effect.log(`started instance ${JSON.stringify(started)}`);
+
+  yield* Effect.log("agents running — Ctrl-C to stop");
+  yield* Effect.never;
+});
+
+Effect.runFork(Effect.scoped(program));
