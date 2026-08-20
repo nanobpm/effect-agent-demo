@@ -109,7 +109,10 @@ export const serveAgents = <R, RErr>(
     const runtime = ManagedRuntime.make(layer);
     yield* Effect.acquireRelease(
       Effect.sync(() => runtime),
-      (rt) => Effect.promise(() => rt.dispose()),
+      // Shutdown cleanup is best-effort: a rejecting `dispose()` would otherwise
+      // surface as a scope-finalizer defect and make graceful shutdown (Ctrl-C,
+      // test teardown) flaky.
+      (rt) => Effect.promise(() => rt.dispose().catch(() => {})),
     );
 
     yield* Effect.forEach(
@@ -156,9 +159,16 @@ export const serveAgents = <R, RErr>(
             return worker;
           }),
           (worker) =>
+            // Best-effort shutdown: swallow a rejecting stop so it can't
+            // propagate as a scope-finalizer defect during teardown (mirrors the
+            // job-defect path, which already swallows `job.fail` errors).
             Effect.promise(async () => {
-              if (worker.stopGracefully) await worker.stopGracefully();
-              else await worker.stop();
+              try {
+                if (worker.stopGracefully) await worker.stopGracefully();
+                else await worker.stop();
+              } catch {
+                /* ignore shutdown errors */
+              }
             }),
         ),
       { discard: true },
