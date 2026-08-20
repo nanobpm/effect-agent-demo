@@ -142,9 +142,13 @@ export const serveAgents = <R, RErr>(
                   // means an unexpected runtime/layer defect. Fail the job
                   // deterministically (raise an incident) rather than let the
                   // rejection escape the nano-sdk callback as an unhandled rejection.
-                  const reason = cause instanceof Error ? cause.message : String(cause);
-                  await job.fail({ errorMessage: `worker defect (${spec.jobType}): ${reason}`, retries: 0 }).catch(() => {});
-                  notify({ _tag: "failed", jobType: spec.jobType, jobKey: job.jobKey, reason, retries: 0 });
+                  const detail = cause instanceof Error ? cause.message : String(cause);
+                  // Use one message for both the engine incident and the observed
+                  // outcome so logs/metrics from `onOutcome` correlate with the
+                  // `errorMessage` the engine records.
+                  const errorMessage = `worker defect (${spec.jobType}): ${detail}`;
+                  await job.fail({ errorMessage, retries: 0 }).catch(() => {});
+                  notify({ _tag: "failed", jobType: spec.jobType, jobKey: job.jobKey, reason: errorMessage, retries: 0 });
                 }
               },
             });

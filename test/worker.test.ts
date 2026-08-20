@@ -57,7 +57,7 @@ test("a succeeding agent completes the job with its variables", async () => {
 });
 
 test("a transient failure is retried on the backoff, then completes — deterministically", async () => {
-  const { completes, fails, actions } = await Effect.runPromise(
+  const { completes, fails, result, tries } = await Effect.runPromise(
     Effect.gen(function* () {
       const attempts = yield* Ref.make(0);
       const rec = recorder();
@@ -71,7 +71,9 @@ test("a transient failure is retried on the backoff, then completes — determin
     }).pipe(Effect.scoped, Effect.provide(TestClock.layer())),
   );
 
-  // failed twice, third attempt succeeded → exactly one completion, no failures
+  // failed twice, third attempt succeeded → exactly 3 attempts, one completion, no failures
+  assert.equal(tries, 3);
+  assert.equal((result as JobOutcome)._tag, "completed");
   assert.deepEqual(fails, []);
   assert.equal(completes.length, 1);
 });
