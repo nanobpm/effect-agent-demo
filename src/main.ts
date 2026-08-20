@@ -44,6 +44,11 @@ const program = Effect.gen(function* () {
     requesterId: "demo-requester",
     reviewerId: "demo-reviewer",
     synthesizeSla: "PT30S",
+    // Reserved for the reviewer-nudge boundary on the `review` task (timed nudge
+    // if the reviewer hasn't acted). It is intentionally not wired to a timer yet:
+    // a correct reviewer nudge must be fire-and-forget, but `@nanobpm/workflow`'s
+    // boundary body always converges into the host continuation. Kept as forward-
+    // looking config pending the upstream fire-and-forget boundary body (issue #3).
     reviewNudgeSla: "PT2H",
   });
   yield* Effect.log(`started instance ${JSON.stringify(started)}`);

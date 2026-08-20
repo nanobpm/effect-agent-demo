@@ -13,6 +13,8 @@ import type { DeclarativeFlow } from "@nanobpm/workflow";
  *     synthesize                    — an LLM agent drafts an answer from the findings
  *     human(review)                 — a reviewer approves / asks for a revision
  *       boundary(nudge SLA)         — a NON-interrupting timer SLA pings the reviewer, leaving the task running
+ *                                     (converges into `review` today — a fire-and-forget reviewer nudge on
+ *                                      `review` timed by `reviewNudgeSla` awaits upstream support, see #3)
  *     switch(verdict):
  *       approve  -> publish; break  — publish the answer and leave the loop
  *       default  -> record-revision — bump the round and loop back to re-synthesize
@@ -111,6 +113,18 @@ export function researchAgentFlow(): DeclarativeFlow {
         // A NON-interrupting SLA on the synthesis agent: if the draft is not
         // produced within the window, ping the reviewer via the `nudge` agent
         // while the synthesis job keeps running (cancelActivity="false").
+        //
+        // KNOWN LIMITATION (tracked in #3): `@nanobpm/workflow`'s `boundary(...)`
+        // always CONVERGES its `onTimeout` danglers back into the host activity's
+        // continuation (see `dist/nodes/boundary.js` → `[...incoming, ...escOut]`);
+        // it has no end/terminate node for a fire-and-forget boundary body. So this
+        // nudge path merges into `review`, and a fired SLA can create a second
+        // `review` instance once `synthesize` later completes. The intended shape is
+        // a fire-and-forget reviewer nudge on the `review` task, timed by
+        // `reviewNudgeSla` — kept as reserved start-input config in `main.ts` — and
+        // awaits the upstream fire-and-forget/end-event boundary body (#3). Until
+        // that lands we keep this single nudge as-is rather than move the spurious
+        // token into the `verdict` gateway.
         b.boundary({
           timer: "=synthesizeSla",
           interrupting: false,
