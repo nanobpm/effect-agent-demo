@@ -121,10 +121,20 @@ export const serveAgents = <R, RErr>(
               jobType: spec.jobType,
               autoStart: false,
               jobHandler: async (job) => {
-                const outcome = await runtime.runPromise(
-                  handleJob(spec, { jobKey: job.jobKey, type: job.type, variables: job.variables }, actionsForActivatedJob(job)),
-                );
-                onOutcome?.(outcome);
+                try {
+                  const outcome = await runtime.runPromise(
+                    handleJob(spec, { jobKey: job.jobKey, type: job.type, variables: job.variables }, actionsForActivatedJob(job)),
+                  );
+                  onOutcome?.(outcome);
+                } catch (cause) {
+                  // `handleJob` never fails in its typed channel, so a rejection here
+                  // means an unexpected runtime/layer defect. Fail the job
+                  // deterministically (raise an incident) rather than let the
+                  // rejection escape the nano-sdk callback as an unhandled rejection.
+                  const reason = cause instanceof Error ? cause.message : String(cause);
+                  await job.fail({ errorMessage: `worker defect (${spec.jobType}): ${reason}`, retries: 0 }).catch(() => {});
+                  onOutcome?.({ _tag: "failed", jobType: spec.jobType, jobKey: job.jobKey, reason, retries: 0 });
+                }
               },
             });
             worker.start();

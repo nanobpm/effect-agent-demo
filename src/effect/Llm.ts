@@ -40,8 +40,11 @@ export const LlmDeterministic = Layer.succeed(Llm, {
         h = Math.imul(h, 16777619);
       }
       const digest = (h >>> 0).toString(16).padStart(8, "0");
-      const head = prompt.slice(0, 64).replace(/\s+/g, " ").trim();
-      return `[deterministic:${digest}] ${head}`;
+      // Return only the stable digest — do NOT echo the prompt. Echoing prompt
+      // text leaked it into logs/variables and could inject downstream parsing
+      // delimiters (e.g. `classify` splits its response on `|`), making the
+      // deterministic run produce unstable/incorrect structured outputs.
+      return `[deterministic:${digest}]`;
     }),
 });
 
@@ -88,7 +91,10 @@ export const LlmLive = Layer.effect(
               }),
             }).then(async (res) => {
               if (!res.ok) {
-                const detail = await res.text().catch(() => "");
+                // Clip + normalize the response body: it can be large/noisy
+                // (even HTML), which makes incidents and logs hard to read.
+                const raw = await res.text().catch(() => "");
+                const detail = raw.replace(/\s+/g, " ").trim().slice(0, 500);
                 const reason = `LLM HTTP ${res.status}: ${detail}`;
                 // 429 (rate limit) and 5xx (server) are retryable; every other
                 // non-OK status (4xx: bad key, malformed request, …) is permanent.

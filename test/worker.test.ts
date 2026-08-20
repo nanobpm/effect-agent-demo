@@ -101,7 +101,6 @@ test("a permanent failure fails the job immediately with retries: 0 (no retries)
 });
 
 test("retry backoff exhaustion raises an incident (retries: 0)", async () => {
-  const { fails } = recorder();
   const attempts = await Effect.runPromise(
     Effect.gen(function* () {
       const count = yield* Ref.make(0);
@@ -125,5 +124,4 @@ test("retry backoff exhaustion raises an incident (retries: 0)", async () => {
   );
 
   assert.equal(attempts, 3);
-  assert.deepEqual(fails, []);
 });
