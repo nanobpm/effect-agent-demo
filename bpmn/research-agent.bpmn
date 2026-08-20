@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:nano="https://nanobpm.io/schema/shapes/1.0" id="Definitions_research-agent" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="research-agent" name="research-agent" isExecutable="true">
+    <bpmn:extensionElements>
+      <nano:shapes>
+        <nano:shape id="Intake">
+          <nano:extend name="question" type="string" />
+          <nano:extend name="requesterId" type="string" />
+          <nano:extend name="reviewerId" type="string" />
+        </nano:shape>
+        <nano:shape id="Classified">
+          <nano:extend name="topic" type="string" />
+          <nano:extend name="difficulty" type="string" />
+        </nano:shape>
+        <nano:shape id="Findings">
+          <nano:extend name="findings" type="string" />
+          <nano:extend name="sourceCount" type="number" />
+        </nano:shape>
+        <nano:shape id="Draft">
+          <nano:extend name="finalAnswer" type="string" />
+          <nano:extend name="round" type="number" />
+        </nano:shape>
+      </nano:shapes>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="Start">
+      <bpmn:outgoing>f_0</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="classify" name="classify">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="agent:classify" />
+        <zeebe:properties>
+          <zeebe:property name="io.nanobpm.dataEnvelope.in" value="Intake" />
+          <zeebe:property name="io.nanobpm.dataEnvelope.out" value="Classified" />
+        </zeebe:properties>
+        <zeebe:linkedResources>
+          <zeebe:linkedResource resourceId="classify.md" bindingType="latest" resourceType="GenericScript" linkName="prompt" />
+        </zeebe:linkedResources>
+      </bpmn:extensionElements>
+      <bpmn:incoming>f_0</bpmn:incoming>
+      <bpmn:outgoing>f_1</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:parallelGateway id="Gw_0">
+      <bpmn:incoming>f_1</bpmn:incoming>
+      <bpmn:outgoing>f_2</bpmn:outgoing>
+      <bpmn:outgoing>f_4</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:parallelGateway id="Gw_1">
+      <bpmn:incoming>f_3</bpmn:incoming>
+      <bpmn:incoming>f_5</bpmn:incoming>
+      <bpmn:outgoing>f_6</bpmn:outgoing>
+    </bpmn:parallelGateway>
+    <bpmn:serviceTask id="search-web" name="search-web">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="agent:search-web" />
+        <zeebe:properties>
+          <zeebe:property name="io.nanobpm.dataEnvelope.out" value="Findings" />
+        </zeebe:properties>
+        <zeebe:linkedResources>
+          <zeebe:linkedResource resourceId="search-web.md" bindingType="latest" resourceType="GenericScript" linkName="prompt" />
+        </zeebe:linkedResources>
+        <zeebe:ioMapping>
+          <zeebe:input source="=topic" target="appendPrompt" />
+          <zeebe:output source="=findings" target="webFindings" />
+          <zeebe:output source="=sourceCount" target="webSourceCount" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>f_2</bpmn:incoming>
+      <bpmn:outgoing>f_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="search-kb" name="search-kb">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="agent:search-kb" />
+        <zeebe:properties>
+          <zeebe:property name="io.nanobpm.dataEnvelope.out" value="Findings" />
+        </zeebe:properties>
+        <zeebe:linkedResources>
+          <zeebe:linkedResource resourceId="search-kb.md" bindingType="latest" resourceType="GenericScript" linkName="prompt" />
+        </zeebe:linkedResources>
+        <zeebe:ioMapping>
+          <zeebe:input source="=topic" target="appendPrompt" />
+          <zeebe:output source="=findings" target="kbFindings" />
+          <zeebe:output source="=sourceCount" target="kbSourceCount" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>f_4</bpmn:incoming>
+      <bpmn:outgoing>f_5</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="Loop_2">
+      <bpmn:incoming>f_6</bpmn:incoming>
+      <bpmn:incoming>f_15</bpmn:incoming>
+      <bpmn:outgoing>f_7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="synthesize" name="synthesize">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="agent:synthesize" />
+        <zeebe:properties>
+          <zeebe:property name="io.nanobpm.dataEnvelope.out" value="Draft" />
+        </zeebe:properties>
+        <zeebe:linkedResources>
+          <zeebe:linkedResource resourceId="synthesize.md" bindingType="latest" resourceType="GenericScript" linkName="prompt" />
+        </zeebe:linkedResources>
+        <zeebe:ioMapping>
+          <zeebe:input source="=webFindings" target="webFindings" />
+          <zeebe:input source="=kbFindings" target="kbFindings" />
+          <zeebe:input source="=if (is defined(round)) then round else 0" target="round" />
+          <zeebe:input source="=if (is defined(revisionNotes)) then revisionNotes else null" target="revisionNotes" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>f_7</bpmn:incoming>
+      <bpmn:outgoing>f_8</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:boundaryEvent id="Be_3" name="nudge-reviewer" cancelActivity="false" attachedToRef="synthesize">
+      <bpmn:outgoing>f_9</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">=synthesizeSla</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:serviceTask id="nudge" name="nudge">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="agent:nudge" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>f_9</bpmn:incoming>
+      <bpmn:outgoing>f_10</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="review" name="review">
+      <bpmn:extensionElements>
+        <zeebe:formDefinition formId="research-review" />
+        <zeebe:userTask />
+        <zeebe:assignmentDefinition assignee="=reviewerId" candidateGroups="researchers" />
+        <zeebe:ioMapping>
+          <zeebe:output source="=verdict" target="verdict" />
+          <zeebe:output source="=if (is defined(finalAnswer)) then finalAnswer else null" target="finalAnswer" />
+          <zeebe:output source="=if (is defined(revisionNotes)) then revisionNotes else null" target="revisionNotes" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>f_8</bpmn:incoming>
+      <bpmn:incoming>f_10</bpmn:incoming>
+      <bpmn:outgoing>f_11</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gw_4" name="verdict" default="f_14">
+      <bpmn:incoming>f_11</bpmn:incoming>
+      <bpmn:outgoing>f_12</bpmn:outgoing>
+      <bpmn:outgoing>f_14</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="publish" name="publish">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="agent:publish" />
+        <zeebe:linkedResources>
+          <zeebe:linkedResource resourceId="publish.md" bindingType="latest" resourceType="GenericScript" linkName="prompt" />
+        </zeebe:linkedResources>
+      </bpmn:extensionElements>
+      <bpmn:incoming>f_12</bpmn:incoming>
+      <bpmn:outgoing>f_13</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="record-revision" name="record-revision">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="agent:record-revision" />
+        <zeebe:ioMapping>
+          <zeebe:output source="=round + 1" target="round" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>f_14</bpmn:incoming>
+      <bpmn:outgoing>f_15</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="archive" name="archive">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="agent:archive" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>f_13</bpmn:incoming>
+      <bpmn:outgoing>f_16</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:endEvent id="End">
+      <bpmn:incoming>f_16</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f_0" sourceRef="Start" targetRef="classify" />
+    <bpmn:sequenceFlow id="f_1" sourceRef="classify" targetRef="Gw_0" />
+    <bpmn:sequenceFlow id="f_2" sourceRef="Gw_0" targetRef="search-web" />
+    <bpmn:sequenceFlow id="f_3" sourceRef="search-web" targetRef="Gw_1" />
+    <bpmn:sequenceFlow id="f_4" sourceRef="Gw_0" targetRef="search-kb" />
+    <bpmn:sequenceFlow id="f_5" sourceRef="search-kb" targetRef="Gw_1" />
+    <bpmn:sequenceFlow id="f_6" sourceRef="Gw_1" targetRef="Loop_2" />
+    <bpmn:sequenceFlow id="f_7" sourceRef="Loop_2" targetRef="synthesize" />
+    <bpmn:sequenceFlow id="f_8" sourceRef="synthesize" targetRef="review" />
+    <bpmn:sequenceFlow id="f_9" sourceRef="Be_3" targetRef="nudge" />
+    <bpmn:sequenceFlow id="f_10" sourceRef="nudge" targetRef="review" />
+    <bpmn:sequenceFlow id="f_11" sourceRef="review" targetRef="Gw_4" />
+    <bpmn:sequenceFlow id="f_12" name="approve" sourceRef="Gw_4" targetRef="publish">
+      <bpmn:conditionExpression>=verdict = "approve"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="f_13" sourceRef="publish" targetRef="archive" />
+    <bpmn:sequenceFlow id="f_14" name="default" sourceRef="Gw_4" targetRef="record-revision" />
+    <bpmn:sequenceFlow id="f_15" sourceRef="record-revision" targetRef="Loop_2" />
+    <bpmn:sequenceFlow id="f_16" sourceRef="archive" targetRef="End" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_research-agent">
+    <bpmndi:BPMNPlane id="BPMNPlane_research-agent" bpmnElement="research-agent">
+      <bpmndi:BPMNShape id="BPMNShape_Start" bpmnElement="Start">
+        <dc:Bounds x="80" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_classify" bpmnElement="classify">
+        <dc:Bounds x="216" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Gw_0" bpmnElement="Gw_0" isMarkerVisible="true">
+        <dc:Bounds x="416" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Gw_1" bpmnElement="Gw_1" isMarkerVisible="true">
+        <dc:Bounds x="766" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_search-web" bpmnElement="search-web">
+        <dc:Bounds x="566" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_search-kb" bpmnElement="search-kb">
+        <dc:Bounds x="566" y="240" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Loop_2" bpmnElement="Loop_2" isMarkerVisible="true">
+        <dc:Bounds x="916" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_synthesize" bpmnElement="synthesize">
+        <dc:Bounds x="1066" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_nudge" bpmnElement="nudge">
+        <dc:Bounds x="1266" y="240" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_review" bpmnElement="review">
+        <dc:Bounds x="1466" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Gw_4" bpmnElement="Gw_4" isMarkerVisible="true">
+        <dc:Bounds x="1666" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1665" y="76" width="53" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_publish" bpmnElement="publish">
+        <dc:Bounds x="1816" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_record-revision" bpmnElement="record-revision">
+        <dc:Bounds x="1816" y="240" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_archive" bpmnElement="archive">
+        <dc:Bounds x="2016" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_End" bpmnElement="End">
+        <dc:Bounds x="2216" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_Be_3" bpmnElement="Be_3">
+        <dc:Bounds x="1098" y="142" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1016" y="183" width="81" height="28" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_0" bpmnElement="f_0">
+        <di:waypoint x="116" y="120" />
+        <di:waypoint x="216" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_1" bpmnElement="f_1">
+        <di:waypoint x="316" y="120" />
+        <di:waypoint x="416" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_2" bpmnElement="f_2">
+        <di:waypoint x="466" y="120" />
+        <di:waypoint x="566" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_3" bpmnElement="f_3">
+        <di:waypoint x="666" y="120" />
+        <di:waypoint x="766" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_6" bpmnElement="f_6">
+        <di:waypoint x="816" y="120" />
+        <di:waypoint x="916" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_7" bpmnElement="f_7">
+        <di:waypoint x="966" y="120" />
+        <di:waypoint x="1066" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_8" bpmnElement="f_8">
+        <di:waypoint x="1166" y="120" />
+        <di:waypoint x="1466" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_11" bpmnElement="f_11">
+        <di:waypoint x="1566" y="120" />
+        <di:waypoint x="1666" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_12" bpmnElement="f_12">
+        <di:waypoint x="1716" y="120" />
+        <di:waypoint x="1816" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1740" y="98" width="53" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_13" bpmnElement="f_13">
+        <di:waypoint x="1916" y="120" />
+        <di:waypoint x="2016" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_16" bpmnElement="f_16">
+        <di:waypoint x="2116" y="120" />
+        <di:waypoint x="2216" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_4" bpmnElement="f_4">
+        <di:waypoint x="441" y="145" />
+        <di:waypoint x="441" y="280" />
+        <di:waypoint x="566" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_14" bpmnElement="f_14">
+        <di:waypoint x="1691" y="145" />
+        <di:waypoint x="1691" y="280" />
+        <di:waypoint x="1816" y="280" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1696" y="206" width="53" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_5" bpmnElement="f_5">
+        <di:waypoint x="666" y="280" />
+        <di:waypoint x="791" y="280" />
+        <di:waypoint x="791" y="145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_10" bpmnElement="f_10">
+        <di:waypoint x="1366" y="280" />
+        <di:waypoint x="1516" y="280" />
+        <di:waypoint x="1516" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_9" bpmnElement="f_9">
+        <di:waypoint x="1116" y="178" />
+        <di:waypoint x="1116" y="280" />
+        <di:waypoint x="1266" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_f_15" bpmnElement="f_15">
+        <di:waypoint x="1866" y="320" />
+        <di:waypoint x="1866" y="340" />
+        <di:waypoint x="941" y="340" />
+        <di:waypoint x="941" y="145" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
