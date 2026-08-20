@@ -54,7 +54,7 @@ export type JobOutcome =
  * `maxRetries`, that only retries *transient* failures — a `PermanentAgentError`
  * short-circuits immediately (no wasted attempts, fast incident).
  */
-export const retrySchedule = (spec: AgentSpec<never>) =>
+export const retrySchedule = (spec: Pick<AgentSpec, "baseBackoff" | "maxRetries">) =>
   Schedule.exponential(spec.baseBackoff ?? Duration.millis(200)).pipe(
     Schedule.compose(Schedule.recurs(spec.maxRetries ?? 3)),
   );
@@ -71,7 +71,7 @@ export const handleJob = <R>(
   actions: JobActions,
 ): Effect.Effect<JobOutcome, never, R> =>
   spec.handler(job).pipe(
-    Effect.retry({ schedule: retrySchedule(spec as AgentSpec<never>), while: isTransient }),
+    Effect.retry({ schedule: retrySchedule(spec), while: isTransient }),
     Effect.matchEffect({
       onSuccess: (variables) =>
         actions.complete(variables).pipe(

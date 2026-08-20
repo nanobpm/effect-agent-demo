@@ -69,7 +69,7 @@ test("a transient failure is retried on the backoff, then completes — determin
       const tries = yield* Ref.get(attempts);
       return { ...rec, result, tries };
     }).pipe(Effect.scoped, Effect.provide(TestClock.layer())),
-  ).then(async (r) => r);
+  );
 
   // failed twice, third attempt succeeded → exactly one completion, no failures
   assert.deepEqual(fails, []);

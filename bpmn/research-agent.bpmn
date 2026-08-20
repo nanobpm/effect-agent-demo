@@ -101,6 +101,7 @@
           <zeebe:input source="=webFindings" target="webFindings" />
           <zeebe:input source="=kbFindings" target="kbFindings" />
           <zeebe:input source="=if (is defined(round)) then round else 0" target="round" />
+          <zeebe:input source="=if (is defined(revisionNotes)) then revisionNotes else null" target="revisionNotes" />
         </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>f_7</bpmn:incoming>
@@ -127,6 +128,7 @@
         <zeebe:ioMapping>
           <zeebe:output source="=verdict" target="verdict" />
           <zeebe:output source="=if (is defined(finalAnswer)) then finalAnswer else null" target="finalAnswer" />
+          <zeebe:output source="=if (is defined(revisionNotes)) then revisionNotes else null" target="revisionNotes" />
         </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>f_8</bpmn:incoming>

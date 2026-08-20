@@ -10,7 +10,8 @@ import { Data } from "effect";
  *
  *  - `TransientAgentError` — a retryable blip (a flaky model call, a 5xx, a rate
  *    limit). The runtime retries it on a `Schedule` backoff; only if the backoff
- *    is exhausted does it reach the engine as a job failure WITH retries left.
+ *    is exhausted does it fail the job — like a permanent error, with
+ *    `retries: 0` — so the engine raises an incident rather than redelivering.
  *  - `PermanentAgentError` — a non-retryable fault (a malformed prompt, a policy
  *    refusal, invalid input). The runtime fails the job with `retries: 0` so the
  *    engine raises an incident immediately rather than redelivering.

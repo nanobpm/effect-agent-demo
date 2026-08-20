@@ -88,7 +88,14 @@ export const LlmLive = Layer.effect(
               }),
             }).then(async (res) => {
               if (!res.ok) {
-                throw new Error(`LLM HTTP ${res.status}: ${await res.text().catch(() => "")}`);
+                const detail = await res.text().catch(() => "");
+                const reason = `LLM HTTP ${res.status}: ${detail}`;
+                // 429 (rate limit) and 5xx (server) are retryable; every other
+                // non-OK status (4xx: bad key, malformed request, …) is permanent.
+                if (res.status === 429 || res.status >= 500) {
+                  throw new TransientAgentError({ agent, reason });
+                }
+                throw new PermanentAgentError({ agent, reason });
               }
               const json = (await res.json()) as {
                 choices?: ReadonlyArray<{ message?: { content?: string } }>;
@@ -97,7 +104,12 @@ export const LlmLive = Layer.effect(
               if (typeof text !== "string") throw new Error("LLM response missing choices[0].message.content");
               return text;
             }),
-          catch: (cause) => new TransientAgentError({ agent, reason: "llm call failed", cause }),
+          catch: (cause) =>
+            // Pass already-typed agent errors through unchanged; only wrap the
+            // rest (network faults, JSON/shape errors) as a transient blip.
+            cause instanceof TransientAgentError || cause instanceof PermanentAgentError
+              ? cause
+              : new TransientAgentError({ agent, reason: "llm call failed", cause }),
         }).pipe(
           Effect.timeoutOrElse({
             duration: cfg.timeout,

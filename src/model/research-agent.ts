@@ -103,6 +103,7 @@ export function researchAgentFlow(): DeclarativeFlow {
               { source: "=webFindings", target: "webFindings" },
               { source: "=kbFindings", target: "kbFindings" },
               { source: "=if (is defined(round)) then round else 0", target: "round" },
+              { source: "=if (is defined(revisionNotes)) then revisionNotes else null", target: "revisionNotes" },
             ],
           },
         });
@@ -125,6 +126,7 @@ export function researchAgentFlow(): DeclarativeFlow {
             output: [
               { source: "=verdict", target: "verdict" },
               { source: "=if (is defined(finalAnswer)) then finalAnswer else null", target: "finalAnswer" },
+              { source: "=if (is defined(revisionNotes)) then revisionNotes else null", target: "revisionNotes" },
             ],
           },
         });
