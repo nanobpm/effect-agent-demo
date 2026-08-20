@@ -14,6 +14,8 @@ import { researchAgentFlow } from "./model/research-agent.ts";
  * Env:
  *   CAMUNDA_REST_ADDRESS  base URL of the C8 / nanobpmn gateway (default localhost:8080)
  *   CAMUNDA_TOKEN         bearer token, if the gateway requires one
+ *   CAMUNDA_TRANSPORT     "auto" | "falcon" | "rest" (default "auto"). Against a
+ *                         Nano gateway "auto" selects the Falcon push transport.
  *   LLM_API_KEY           when set, the agents use the real `LlmLive`; otherwise
  *                         the deterministic stand-in (so the demo runs offline)
  *
@@ -24,12 +26,13 @@ import { researchAgentFlow } from "./model/research-agent.ts";
 
 const baseUrl = process.env.CAMUNDA_REST_ADDRESS ?? "http://localhost:8080";
 const token = process.env.CAMUNDA_TOKEN;
+const transport = (process.env.CAMUNDA_TRANSPORT ?? "auto") as "auto" | "falcon" | "rest";
 
 const llmLayer: Layer.Layer<Llm, Config.ConfigError> = process.env.LLM_API_KEY ? LlmLive : LlmDeterministic;
 
 const program = Effect.gen(function* () {
   const flow = researchAgentFlow();
-  const client = EffectClient.make(token ? { baseUrl, token } : { baseUrl });
+  const client = EffectClient.make(token ? { baseUrl, token, transport } : { baseUrl, transport });
 
   yield* Effect.log(`deploying 'research-agent' to ${baseUrl}`);
   yield* client.deploy(flow);
