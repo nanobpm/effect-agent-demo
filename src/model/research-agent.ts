@@ -86,13 +86,23 @@ export function researchAgentFlow(): DeclarativeFlow {
           b.task("search-web", {
             jobType: JobTypes.searchWeb,
             prompt: { resourceId: "search-web.md", bindingType: "latest", append: "=topic" },
-            io: { output: [{ source: "=findings", target: "webFindings" }] },
+            io: {
+              output: [
+                { source: "=findings", target: "webFindings" },
+                { source: "=sourceCount", target: "webSourceCount" },
+              ],
+            },
           }),
         (b) =>
           b.task("search-kb", {
             jobType: JobTypes.searchKb,
             prompt: { resourceId: "search-kb.md", bindingType: "latest", append: "=topic" },
-            io: { output: [{ source: "=findings", target: "kbFindings" }] },
+            io: {
+              output: [
+                { source: "=findings", target: "kbFindings" },
+                { source: "=sourceCount", target: "kbSourceCount" },
+              ],
+            },
           }),
       ]);
 

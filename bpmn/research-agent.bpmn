@@ -61,6 +61,7 @@
         <zeebe:ioMapping>
           <zeebe:input source="=topic" target="appendPrompt" />
           <zeebe:output source="=findings" target="webFindings" />
+          <zeebe:output source="=sourceCount" target="webSourceCount" />
         </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>f_2</bpmn:incoming>
@@ -78,6 +79,7 @@
         <zeebe:ioMapping>
           <zeebe:input source="=topic" target="appendPrompt" />
           <zeebe:output source="=findings" target="kbFindings" />
+          <zeebe:output source="=sourceCount" target="kbSourceCount" />
         </zeebe:ioMapping>
       </bpmn:extensionElements>
       <bpmn:incoming>f_4</bpmn:incoming>
