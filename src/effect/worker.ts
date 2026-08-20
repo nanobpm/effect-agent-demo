@@ -121,11 +121,22 @@ export const serveAgents = <R, RErr>(
               jobType: spec.jobType,
               autoStart: false,
               jobHandler: async (job) => {
+                // Observer failures (logging/metrics) must never be mistaken for a
+                // job defect: the job outcome is already decided, so swallow any
+                // throw here rather than let it fail the job or escape as an
+                // unhandled rejection.
+                const notify = (outcome: JobOutcome) => {
+                  try {
+                    onOutcome?.(outcome);
+                  } catch {
+                    /* ignore observer errors */
+                  }
+                };
                 try {
                   const outcome = await runtime.runPromise(
                     handleJob(spec, { jobKey: job.jobKey, type: job.type, variables: job.variables }, actionsForActivatedJob(job)),
                   );
-                  onOutcome?.(outcome);
+                  notify(outcome);
                 } catch (cause) {
                   // `handleJob` never fails in its typed channel, so a rejection here
                   // means an unexpected runtime/layer defect. Fail the job
@@ -133,7 +144,7 @@ export const serveAgents = <R, RErr>(
                   // rejection escape the nano-sdk callback as an unhandled rejection.
                   const reason = cause instanceof Error ? cause.message : String(cause);
                   await job.fail({ errorMessage: `worker defect (${spec.jobType}): ${reason}`, retries: 0 }).catch(() => {});
-                  onOutcome?.({ _tag: "failed", jobType: spec.jobType, jobKey: job.jobKey, reason, retries: 0 });
+                  notify({ _tag: "failed", jobType: spec.jobType, jobKey: job.jobKey, reason, retries: 0 });
                 }
               },
             });
