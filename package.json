@@ -10,15 +10,20 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "biome check",
+    "lint:fix": "biome check --write",
     "test": "node --experimental-transform-types --test \"test/*.test.ts\"",
     "model:emit": "node --experimental-transform-types scripts/emit-bpmn.ts",
-    "deploy": "node --experimental-transform-types src/main.ts"
+    "deploy": "node --experimental-transform-types src/main.ts",
+    "app": "node --experimental-transform-types urban-app.ts"
   },
   "dependencies": {
+    "@nanobpm/urban": "^0.73.0",
     "@nanobpm/workflow": "^0.13.1",
     "effect": "4.0.0-beta.9"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.7",
     "@types/node": "^22.20.1",
     "bpmn-auto-layout": "^2.0.0-alpha.2",
     "typescript": "^5.6.3"

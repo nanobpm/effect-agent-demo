@@ -1,9 +1,9 @@
-import { Config, Effect, Layer } from "effect";
-import { EffectClient } from "./effect/client.ts";
-import { LlmDeterministic, LlmLive } from "./effect/Llm.ts";
-import type { Llm } from "./effect/Llm.ts";
-import { serveAgents } from "./effect/worker.ts";
+import { type Config, Effect, type Layer } from "effect";
 import { agentSpecs } from "./agents/index.ts";
+import { EffectClient } from "./effect/client.ts";
+import type { Llm } from "./effect/Llm.ts";
+import { LlmDeterministic, LlmLive } from "./effect/Llm.ts";
+import { serveAgents } from "./effect/worker.ts";
 import { researchAgentFlow } from "./model/research-agent.ts";
 
 /**
@@ -37,10 +37,10 @@ const program = Effect.gen(function* () {
   yield* Effect.log(`deploying 'research-agent' to ${baseUrl}`);
   yield* client.deploy(flow);
 
-  yield* serveAgents(client.sdk, llmLayer, agentSpecs, (o) =>
-    Effect.runSync(Effect.log(`job ${o.jobType} ${o._tag}`)),
+  yield* serveAgents(client.sdk, llmLayer, agentSpecs, (o) => Effect.runSync(Effect.log(`job ${o.jobType} ${o._tag}`)));
+  yield* Effect.log(
+    `serving ${agentSpecs.length} agents (${process.env.LLM_API_KEY ? "LlmLive" : "LlmDeterministic"})`,
   );
-  yield* Effect.log(`serving ${agentSpecs.length} agents (${process.env.LLM_API_KEY ? "LlmLive" : "LlmDeterministic"})`);
 
   const started = yield* client.start(flow, {
     question: process.env.QUESTION ?? "How does Effect's TestClock make agent orchestration deterministic?",

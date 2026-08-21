@@ -1,13 +1,12 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
+import { test } from "node:test";
+import type { JsonObject } from "@nanobpm/workflow";
 import { Duration, Effect, Fiber, Layer } from "effect";
 import { TestClock } from "effect/testing";
-import type { JsonObject } from "@nanobpm/workflow";
-import { Llm } from "../src/effect/Llm.ts";
-import { LlmDeterministic } from "../src/effect/Llm.ts";
-import { TransientAgentError } from "../src/effect/errors.ts";
 import { classify } from "../src/agents/classify.ts";
 import { synthesize } from "../src/agents/synthesize.ts";
+import { TransientAgentError } from "../src/effect/errors.ts";
+import { Llm, LlmDeterministic } from "../src/effect/Llm.ts";
 import type { EffectJob } from "../src/effect/worker.ts";
 
 const jobOf = (variables: JsonObject): EffectJob => ({ jobKey: "j", type: "t", variables });
@@ -31,9 +30,7 @@ test("classify fails permanently on missing input (no LLM call)", async () => {
 });
 
 test("synthesize carries the convergence-loop round forward", async () => {
-  const out = await runDeterministic(
-    synthesize(jobOf({ webFindings: "- a", kbFindings: "- b", round: 2 })),
-  );
+  const out = await runDeterministic(synthesize(jobOf({ webFindings: "- a", kbFindings: "- b", round: 2 })));
   assert.equal(out.round, 2);
   assert.equal(typeof out.finalAnswer, "string");
 });

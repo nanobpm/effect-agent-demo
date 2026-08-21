@@ -1,11 +1,11 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
+import { test } from "node:test";
+import type { JsonObject } from "@nanobpm/workflow";
 import { Duration, Effect, Fiber, Ref } from "effect";
 import { TestClock } from "effect/testing";
-import type { JsonObject } from "@nanobpm/workflow";
-import { handleJob } from "../src/effect/worker.ts";
-import type { AgentHandler, EffectJob, JobActions, JobOutcome } from "../src/effect/worker.ts";
 import { PermanentAgentError, TransientAgentError } from "../src/effect/errors.ts";
+import type { AgentHandler, EffectJob, JobActions, JobOutcome } from "../src/effect/worker.ts";
+import { handleJob } from "../src/effect/worker.ts";
 
 /**
  * The Effect job-worker core (the S2 `handle → complete/fail` step) under
@@ -39,12 +39,14 @@ const runVirtual = <A>(effect: Effect.Effect<A>, advance = Duration.seconds(60))
     ).pipe(Effect.provide(TestClock.layer())),
   );
 
-const flaky = (attempts: Ref.Ref<number>, failFor: number): AgentHandler => (j) =>
-  Effect.gen(function* () {
-    const n = yield* Ref.updateAndGet(attempts, (x) => x + 1);
-    if (n <= failFor) return yield* Effect.fail(new TransientAgentError({ agent: "flaky", reason: `blip ${n}` }));
-    return { ok: true, attempt: n } satisfies JsonObject;
-  });
+const flaky =
+  (attempts: Ref.Ref<number>, failFor: number): AgentHandler =>
+  (_job) =>
+    Effect.gen(function* () {
+      const n = yield* Ref.updateAndGet(attempts, (x) => x + 1);
+      if (n <= failFor) return yield* Effect.fail(new TransientAgentError({ agent: "flaky", reason: `blip ${n}` }));
+      return { ok: true, attempt: n } satisfies JsonObject;
+    });
 
 test("a succeeding agent completes the job with its variables", async () => {
   const { completes, fails, actions } = recorder();
@@ -62,7 +64,11 @@ test("a transient failure is retried on the backoff, then completes — determin
       const attempts = yield* Ref.make(0);
       const rec = recorder();
       const outcome = yield* Effect.forkChild(
-        handleJob({ jobType: "agent:test", handler: flaky(attempts, 2), baseBackoff: Duration.millis(200) }, job, rec.actions),
+        handleJob(
+          { jobType: "agent:test", handler: flaky(attempts, 2), baseBackoff: Duration.millis(200) },
+          job,
+          rec.actions,
+        ),
       );
       yield* TestClock.adjust(Duration.seconds(5));
       const result = yield* Fiber.join(outcome);
@@ -114,7 +120,11 @@ test("retry backoff exhaustion raises an incident (retries: 0)", async () => {
           return yield* Effect.fail(new TransientAgentError({ agent: "down", reason: `still down ${n}` }));
         });
       const fiber = yield* Effect.forkChild(
-        handleJob({ jobType: "agent:test", handler, maxRetries: 2, baseBackoff: Duration.millis(100) }, job, rec.actions),
+        handleJob(
+          { jobType: "agent:test", handler, maxRetries: 2, baseBackoff: Duration.millis(100) },
+          job,
+          rec.actions,
+        ),
       );
       yield* TestClock.adjust(Duration.seconds(30));
       const outcome = (yield* Fiber.join(fiber)) as JobOutcome;

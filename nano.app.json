@@ -1,0 +1,13 @@
+{
+  "$schema": "https://nanobpm.io/spec-app/nano-app.schema.json",
+  "schemaVersion": 1,
+  "id": "research-agent",
+  "name": "Research Agent",
+  "codename": "Urban",
+  "surfaces": {
+    "taskInbox": { "enabled": true, "path": "/tasks" }
+  },
+  "models": {
+    "forms": ["resources/forms/*.form"]
+  }
+}
