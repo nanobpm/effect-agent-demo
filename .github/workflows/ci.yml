@@ -18,6 +18,8 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
+      - name: Lint (biome)
+        run: npm run lint
       - name: Typecheck
         run: npm run typecheck
       - name: Test (TestClock-deterministic)

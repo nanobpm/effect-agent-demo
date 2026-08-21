@@ -1,11 +1,11 @@
-import { JobTypes } from "../model/research-agent.ts";
 import type { Llm } from "../effect/Llm.ts";
 import type { AgentSpec } from "../effect/worker.ts";
+import { JobTypes } from "../model/research-agent.ts";
 import { classify } from "./classify.ts";
+import { archive, nudge, recordRevision } from "./misc.ts";
+import { publish } from "./publish.ts";
 import { searchKb, searchWeb } from "./search.ts";
 import { synthesize } from "./synthesize.ts";
-import { publish } from "./publish.ts";
-import { archive, nudge, recordRevision } from "./misc.ts";
 
 /**
  * The agent registry — every derived job type in the model wired to the Effect

@@ -1,6 +1,13 @@
-import { Effect } from "effect";
+import type {
+  DeclarativeFlow,
+  DeployResult,
+  JsonObject,
+  StartResult,
+  Workflow,
+  WorkflowClientOptions,
+} from "@nanobpm/workflow";
 import { WorkflowClient } from "@nanobpm/workflow";
-import type { DeclarativeFlow, DeployResult, JsonObject, StartResult, Workflow, WorkflowClientOptions } from "@nanobpm/workflow";
+import { Effect } from "effect";
 import { PermanentAgentError } from "./errors.ts";
 
 /**
@@ -11,7 +18,11 @@ import { PermanentAgentError } from "./errors.ts";
  * Effect. Swap the internals when `./effect` lands; call sites are unchanged.
  */
 export class EffectClient {
-  private constructor(private readonly client: WorkflowClient) {}
+  private readonly client: WorkflowClient;
+
+  private constructor(client: WorkflowClient) {
+    this.client = client;
+  }
 
   /** The underlying nano-sdk client, so the worker runtime can serve jobs over
    *  the same transport. */

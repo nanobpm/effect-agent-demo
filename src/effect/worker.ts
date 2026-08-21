@@ -1,8 +1,8 @@
-import { Duration, Effect, ManagedRuntime, Schedule } from "effect";
-import type { Layer, Scope } from "effect";
 import type { ActivatedJob, JsonObject, NanoSdkClient } from "@nanobpm/workflow";
-import { isTransient } from "./errors.ts";
+import type { Layer, Scope } from "effect";
+import { Duration, Effect, ManagedRuntime, Schedule } from "effect";
 import type { AgentError } from "./errors.ts";
+import { isTransient } from "./errors.ts";
 
 /**
  * The Effect job-worker surface (S2). The published target is
@@ -47,7 +47,13 @@ export interface JobActions {
 /** What became of a single job — surfaced to tests and observers. */
 export type JobOutcome =
   | { readonly _tag: "completed"; readonly jobType: string; readonly jobKey: string; readonly variables: JsonObject }
-  | { readonly _tag: "failed"; readonly jobType: string; readonly jobKey: string; readonly reason: string; readonly retries: number };
+  | {
+      readonly _tag: "failed";
+      readonly jobType: string;
+      readonly jobKey: string;
+      readonly reason: string;
+      readonly retries: number;
+    };
 
 /**
  * The deterministic retry policy for an agent: an exponential backoff, capped at
@@ -74,12 +80,18 @@ export const handleJob = <R>(
     Effect.retry({ schedule: retrySchedule(spec), while: isTransient }),
     Effect.matchEffect({
       onSuccess: (variables) =>
-        actions.complete(variables).pipe(
-          Effect.as<JobOutcome>({ _tag: "completed", jobType: spec.jobType, jobKey: job.jobKey, variables }),
-        ),
+        actions
+          .complete(variables)
+          .pipe(Effect.as<JobOutcome>({ _tag: "completed", jobType: spec.jobType, jobKey: job.jobKey, variables })),
       onFailure: (error: AgentError) =>
         actions.fail(error.reason, 0).pipe(
-          Effect.as<JobOutcome>({ _tag: "failed", jobType: spec.jobType, jobKey: job.jobKey, reason: error.reason, retries: 0 }),
+          Effect.as<JobOutcome>({
+            _tag: "failed",
+            jobType: spec.jobType,
+            jobKey: job.jobKey,
+            reason: error.reason,
+            retries: 0,
+          }),
         ),
     }),
   );
@@ -137,7 +149,11 @@ export const serveAgents = <R, RErr>(
                 };
                 try {
                   const outcome = await runtime.runPromise(
-                    handleJob(spec, { jobKey: job.jobKey, type: job.type, variables: job.variables }, actionsForActivatedJob(job)),
+                    handleJob(
+                      spec,
+                      { jobKey: job.jobKey, type: job.type, variables: job.variables },
+                      actionsForActivatedJob(job),
+                    ),
                   );
                   notify(outcome);
                 } catch (cause) {
@@ -151,7 +167,13 @@ export const serveAgents = <R, RErr>(
                   // `errorMessage` the engine records.
                   const errorMessage = `worker defect (${spec.jobType}): ${detail}`;
                   await job.fail({ errorMessage, retries: 0 }).catch(() => {});
-                  notify({ _tag: "failed", jobType: spec.jobType, jobKey: job.jobKey, reason: errorMessage, retries: 0 });
+                  notify({
+                    _tag: "failed",
+                    jobType: spec.jobType,
+                    jobKey: job.jobKey,
+                    reason: errorMessage,
+                    retries: 0,
+                  });
                 }
               },
             });

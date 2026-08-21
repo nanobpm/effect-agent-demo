@@ -1,6 +1,6 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
-import { toBpmn, externalJobTypes } from "@nanobpm/workflow";
+import { test } from "node:test";
+import { externalJobTypes, toBpmn } from "@nanobpm/workflow";
 import { JobTypes, researchAgentFlow } from "../src/model/research-agent.ts";
 
 /**

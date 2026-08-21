@@ -1,0 +1,40 @@
+{
+  "components": [
+    {
+      "type": "text",
+      "text": "# Research review\n\nRevision round **{{round}}**. Review the drafted answer below, then approve it for publication or request a revision."
+    },
+    {
+      "label": "Question",
+      "type": "textfield",
+      "key": "question",
+      "disabled": true
+    },
+    {
+      "label": "Drafted answer",
+      "type": "textarea",
+      "key": "finalAnswer",
+      "disabled": true
+    },
+    {
+      "label": "Verdict",
+      "type": "radio",
+      "key": "verdict",
+      "validate": { "required": true },
+      "values": [
+        { "label": "Approve & publish", "value": "approve" },
+        { "label": "Request a revision", "value": "revise" }
+      ]
+    },
+    {
+      "label": "Revision notes",
+      "type": "textarea",
+      "key": "revisionNotes",
+      "description": "What should the next draft change?",
+      "conditional": { "hide": "=verdict != \"revise\"" }
+    }
+  ],
+  "type": "default",
+  "id": "research-review",
+  "schemaVersion": 16
+}

@@ -1,10 +1,14 @@
-import { Effect } from "effect";
 import type { JsonObject } from "@nanobpm/workflow";
+import { Effect } from "effect";
 import { PermanentAgentError } from "../effect/errors.ts";
 
 /** Read a required string job variable, failing PERMANENTLY when it is missing
  *  or the wrong type — bad input is not something a retry can fix. */
-export const requireString = (agent: string, vars: JsonObject, key: string): Effect.Effect<string, PermanentAgentError> => {
+export const requireString = (
+  agent: string,
+  vars: JsonObject,
+  key: string,
+): Effect.Effect<string, PermanentAgentError> => {
   const value = vars[key];
   return typeof value === "string" && value.length > 0
     ? Effect.succeed(value)

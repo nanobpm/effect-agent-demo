@@ -1,9 +1,9 @@
-import { Config, Effect, Layer } from "effect";
-import { EffectClient } from "./effect/client.ts";
-import { LlmDeterministic, LlmLive } from "./effect/Llm.ts";
-import type { Llm } from "./effect/Llm.ts";
-import { serveAgents } from "./effect/worker.ts";
+import { type Config, Effect, type Layer } from "effect";
 import { agentSpecs } from "./agents/index.ts";
+import { EffectClient } from "./effect/client.ts";
+import type { Llm } from "./effect/Llm.ts";
+import { LlmDeterministic, LlmLive } from "./effect/Llm.ts";
+import { serveAgents } from "./effect/worker.ts";
 import { researchAgentFlow } from "./model/research-agent.ts";
 
 /**
@@ -14,6 +14,8 @@ import { researchAgentFlow } from "./model/research-agent.ts";
  * Env:
  *   CAMUNDA_REST_ADDRESS  base URL of the C8 / nanobpmn gateway (default localhost:8080)
  *   CAMUNDA_TOKEN         bearer token, if the gateway requires one
+ *   CAMUNDA_TRANSPORT     "auto" | "falcon" | "rest" (default "auto"). Against a
+ *                         Nano gateway "auto" selects the Falcon push transport.
  *   LLM_API_KEY           when set, the agents use the real `LlmLive`; otherwise
  *                         the deterministic stand-in (so the demo runs offline)
  *
@@ -24,20 +26,30 @@ import { researchAgentFlow } from "./model/research-agent.ts";
 
 const baseUrl = process.env.CAMUNDA_REST_ADDRESS ?? "http://localhost:8080";
 const token = process.env.CAMUNDA_TOKEN;
+const TRANSPORTS = ["auto", "falcon", "rest"] as const;
+type Transport = (typeof TRANSPORTS)[number];
+
+const rawTransport = process.env.CAMUNDA_TRANSPORT ?? "auto";
+if (!TRANSPORTS.includes(rawTransport as Transport)) {
+  throw new Error(
+    `Invalid CAMUNDA_TRANSPORT "${rawTransport}"; expected one of ${TRANSPORTS.map((t) => `"${t}"`).join(", ")}.`,
+  );
+}
+const transport: Transport = rawTransport as Transport;
 
 const llmLayer: Layer.Layer<Llm, Config.ConfigError> = process.env.LLM_API_KEY ? LlmLive : LlmDeterministic;
 
 const program = Effect.gen(function* () {
   const flow = researchAgentFlow();
-  const client = EffectClient.make(token ? { baseUrl, token } : { baseUrl });
+  const client = EffectClient.make(token ? { baseUrl, token, transport } : { baseUrl, transport });
 
   yield* Effect.log(`deploying 'research-agent' to ${baseUrl}`);
   yield* client.deploy(flow);
 
-  yield* serveAgents(client.sdk, llmLayer, agentSpecs, (o) =>
-    Effect.runSync(Effect.log(`job ${o.jobType} ${o._tag}`)),
+  yield* serveAgents(client.sdk, llmLayer, agentSpecs, (o) => Effect.runSync(Effect.log(`job ${o.jobType} ${o._tag}`)));
+  yield* Effect.log(
+    `serving ${agentSpecs.length} agents (${process.env.LLM_API_KEY ? "LlmLive" : "LlmDeterministic"})`,
   );
-  yield* Effect.log(`serving ${agentSpecs.length} agents (${process.env.LLM_API_KEY ? "LlmLive" : "LlmDeterministic"})`);
 
   const started = yield* client.start(flow, {
     question: process.env.QUESTION ?? "How does Effect's TestClock make agent orchestration deterministic?",

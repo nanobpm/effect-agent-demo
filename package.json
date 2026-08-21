@@ -2,7 +2,7 @@
   "name": "effect-agent-demo",
   "version": "0.1.0",
   "private": true,
-  "description": "Code-first agent orchestration in Effect — defineFlow model + Effect agent workers on Camunda 8.",
+  "description": "Code-first agent orchestration in Effect \u2014 defineFlow model + Effect agent workers on Camunda 8.",
   "type": "module",
   "license": "Apache-2.0",
   "engines": {
@@ -10,21 +10,29 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --experimental-strip-types --test \"test/*.test.ts\"",
-    "model:emit": "node --experimental-strip-types scripts/emit-bpmn.ts",
-    "deploy": "node --experimental-strip-types src/main.ts"
+    "lint": "biome check",
+    "lint:fix": "biome check --write",
+    "test": "node --experimental-transform-types --test \"test/*.test.ts\"",
+    "model:emit": "node --experimental-transform-types scripts/emit-bpmn.ts",
+    "deploy": "node --experimental-transform-types src/main.ts",
+    "app": "node --experimental-transform-types urban-app.ts"
   },
   "dependencies": {
-    "@nanobpm/workflow": "^0.13.0",
+    "@nanobpm/urban": "^0.73.0",
+    "@nanobpm/workflow": "^0.13.1",
     "effect": "4.0.0-beta.9"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.7",
     "@types/node": "^22.20.1",
     "bpmn-auto-layout": "^2.0.0-alpha.2",
     "typescript": "^5.6.3"
   },
   "comments": {
-    "effect": "Optional at every SDK layer, but a DIRECT dependency of this demo — the demo opts into Effect. Targets Effect v4 (beta), matching the published ./effect surface (#437/#438).",
-    "transport": "The published transport target is @camunda8/orchestration-cluster-api/effect (S1 #437 + S2 #438). Until it publishes, the demo drives the engine through @nanobpm/workflow's WorkflowClient (Promise SDK) behind a thin Effect surface in src/effect/ — swap the internals when ./effect lands."
+    "effect": "Optional at every SDK layer, but a DIRECT dependency of this demo \u2014 the demo opts into Effect. Targets Effect v4 (beta), matching the published ./effect surface (#437/#438).",
+    "transport": "The published transport target is @camunda8/orchestration-cluster-api/effect (S1 #437 + S2 #438). Until it publishes, the demo drives the engine through @nanobpm/workflow's WorkflowClient (Promise SDK) behind a thin Effect surface in src/effect/ \u2014 swap the internals when ./effect lands."
+  },
+  "overrides": {
+    "@nanobpm/nano-sdk": "1.2.7"
   }
 }

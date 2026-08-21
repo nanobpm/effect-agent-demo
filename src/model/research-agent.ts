@@ -1,5 +1,5 @@
-import { defineFlow, envelope } from "@nanobpm/workflow";
 import type { DeclarativeFlow } from "@nanobpm/workflow";
+import { defineFlow, envelope } from "@nanobpm/workflow";
 
 /**
  * The agent-orchestration model — authored code-first with `@nanobpm/workflow`

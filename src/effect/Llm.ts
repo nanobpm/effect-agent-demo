@@ -56,9 +56,7 @@ interface LlmConfig {
 }
 
 const llmConfig: Config.Config<LlmConfig> = Config.all({
-  endpoint: Config.string("LLM_ENDPOINT").pipe(
-    Config.withDefault(() => "https://api.openai.com/v1/chat/completions"),
-  ),
+  endpoint: Config.string("LLM_ENDPOINT").pipe(Config.withDefault(() => "https://api.openai.com/v1/chat/completions")),
   apiKey: Config.redacted("LLM_API_KEY"),
   model: Config.string("LLM_MODEL").pipe(Config.withDefault(() => "gpt-4o-mini")),
   timeout: Config.duration("LLM_TIMEOUT").pipe(Config.withDefault(() => Duration.seconds(30))),
