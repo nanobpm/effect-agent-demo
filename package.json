@@ -33,6 +33,6 @@
     "transport": "The published transport target is @camunda8/orchestration-cluster-api/effect (S1 #437 + S2 #438). Until it publishes, the demo drives the engine through @nanobpm/workflow's WorkflowClient (Promise SDK) behind a thin Effect surface in src/effect/ \u2014 swap the internals when ./effect lands."
   },
   "overrides": {
-    "@nanobpm/nano-sdk": "^1.2.7"
+    "@nanobpm/nano-sdk": "1.2.7"
   }
 }

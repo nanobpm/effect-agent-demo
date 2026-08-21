@@ -26,7 +26,16 @@ import { researchAgentFlow } from "./model/research-agent.ts";
 
 const baseUrl = process.env.CAMUNDA_REST_ADDRESS ?? "http://localhost:8080";
 const token = process.env.CAMUNDA_TOKEN;
-const transport = (process.env.CAMUNDA_TRANSPORT ?? "auto") as "auto" | "falcon" | "rest";
+const TRANSPORTS = ["auto", "falcon", "rest"] as const;
+type Transport = (typeof TRANSPORTS)[number];
+
+const rawTransport = process.env.CAMUNDA_TRANSPORT ?? "auto";
+if (!TRANSPORTS.includes(rawTransport as Transport)) {
+  throw new Error(
+    `Invalid CAMUNDA_TRANSPORT "${rawTransport}"; expected one of ${TRANSPORTS.map((t) => `"${t}"`).join(", ")}.`,
+  );
+}
+const transport: Transport = rawTransport as Transport;
 
 const llmLayer: Layer.Layer<Llm, Config.ConfigError> = process.env.LLM_API_KEY ? LlmLive : LlmDeterministic;
 
